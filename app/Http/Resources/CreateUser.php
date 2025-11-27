@@ -13,15 +13,16 @@ class CreateUser extends JsonResource
      * @return array<string, mixed>
      */
     public function toArray(Request $request): array
-    {
-        return [
-            'firstname' => $this->firstname,
-            'lastname' => $this->lastname,
-            'dob' => $this->dob,
-            'gender' => $this->gender,
-            'phone' => $this->phone,
-            'profile' => $this->profile ? url('/storage', $request->profile) : null,
-            'email' => $this->email,
-        ];
-    }
+{
+    return [
+        'firstname' => $this->firstname,
+        'lastname' => $this->lastname,
+        'dob' => $this->dob,
+        'gender' => $this->gender,
+        'phone' => $this->phone,
+        'profile' => $this->profile ? url('/storage', $this->profile_pic) : null, // Fixed reference
+        'email' => $this->email,
+    ];
+}
+
 }

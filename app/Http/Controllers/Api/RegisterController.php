@@ -9,6 +9,7 @@ use App\Models\Admin;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 
 class RegisterController extends Controller
 {
@@ -63,28 +64,23 @@ public function createUser(Request $request)
         'phone' => 'required|digits:10',
         'profile' => 'required|image|mimes:jpg,png,jpeg|max:2048',
         'email' => 'required|email|unique:users',
-        'password' => 'required|min:6', // Added minimum length validation
+        'password' => 'required|min:6',
     ]);
 
-    // Handle profile image upload efficiently
     if ($request->hasFile('profile')) {
         $file = $request->file('profile');
         $filename = time() . '_' . $file->getClientOriginalName();
-        // The storeAs method returns the path
         $validated['profile'] = $file->storeAs('uploads', $filename, 'public');
     }
 
-    // Hash the password before creation
     $validated['password'] = Hash::make($validated['password']);
 
-    // Create the user using the validated data array
     $user = User::create($validated);
 
     return response()->json([
         'success' => true,
         'message' => 'Registered successfully',
-        'user' => new CreateUser($user), // Use your resource if needed
-        // 'user' => $user, // Or return the user object directly
+        'user' => new CreateUser($user),
     ]);
 }
 
@@ -99,4 +95,48 @@ public function createUser(Request $request)
         $request->user()->currentAccessToken()->delete();
         return response()->json(['message' => 'Logged out successfully']);
     }
+public function deleteUser($id)
+{
+    $user = User::find($id);
+
+    if (!$user) {
+        return response()->json(['message' => 'User not found or already deleted'], 404);
+    }
+    $user->delete();
+    return response()->json([
+        'success' => true,
+        'message' => 'User Deleted Successfully',
+    ]);
+}
+public function updateUser(Request $request, $id)
+{
+    $user = User::find($id);
+
+    if (!$user) {
+        return response()->json(['message' => 'User not found or already deleted'], 404);
+    }
+
+    $validated = $request->validate([
+        'firstname' => 'required|string',
+        'lastname' => 'required|string',
+        'dob' => 'required|date',
+        'gender' => 'required|string',
+        'phone' => 'required|digits:10',
+        'profile_pic' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+        'email' => 'required|email',
+    ]);
+
+    if ($request->hasFile('profile_pic')) {
+        if ($user->profile_pic && file_exists(storage_path('app/public/' . $user->profile_pic))) {
+            unlink(storage_path('app/public/' . $user->profile_pic));
+        }
+        $user->profile_pic = $request->file('profile_pic')->store('uploads', 'public');
+    }
+    $user->update($validated);
+    return response()->json([
+        'message' => 'Profile updated successfully',
+        'user' => new CreateUser($user)
+    ]);
+}
+
 }
