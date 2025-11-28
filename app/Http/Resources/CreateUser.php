@@ -20,8 +20,11 @@ class CreateUser extends JsonResource
         'dob' => $this->dob,
         'gender' => $this->gender,
         'phone' => $this->phone,
-        'profile' => $this->profile ? url('/storage', $this->profile_pic) : null, // Fixed reference
+        //error only i used "," instead of "."
+        'profile' => $this->profile ? asset('storage/'. $this->profile) : null,
         'email' => $this->email,
+        'created_at' => $this->created_at->format('Y-m-d H:i:s'),
+        'updated_at' => $this->created_at->format('Y-m-d H:i:s')
     ];
 }
 

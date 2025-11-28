@@ -95,48 +95,53 @@ public function createUser(Request $request)
         $request->user()->currentAccessToken()->delete();
         return response()->json(['message' => 'Logged out successfully']);
     }
-public function deleteUser($id)
+public function deleteUser(Request $request,$id)
 {
     $user = User::find($id);
 
     if (!$user) {
         return response()->json(['message' => 'User not found or already deleted'], 404);
     }
+        if ($user->profile && Storage::disk('public')->exists($user->profile)) {
+            Storage::disk('public')->delete($user->profile);
+        }
+
+
     $user->delete();
     return response()->json([
         'success' => true,
         'message' => 'User Deleted Successfully',
     ]);
 }
-public function updateUser(Request $request, $id)
+public function updateUser(Request $request,$id)
 {
     $user = User::find($id);
 
     if (!$user) {
         return response()->json(['message' => 'User not found or already deleted'], 404);
     }
-
     $validated = $request->validate([
         'firstname' => 'required|string',
         'lastname' => 'required|string',
         'dob' => 'required|date',
         'gender' => 'required|string',
         'phone' => 'required|digits:10',
-        'profile_pic' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-        'email' => 'required|email',
+        'email' => 'required|email|unique:users,email,' . $user->id,
+        'profile' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
     ]);
-
-    if ($request->hasFile('profile_pic')) {
-        if ($user->profile_pic && file_exists(storage_path('app/public/' . $user->profile_pic))) {
-            unlink(storage_path('app/public/' . $user->profile_pic));
+    if ($request->hasFile('profile')) {
+        if ($user->profile && Storage::disk('public')->exists($user->profile)) {
+            Storage::disk('public')->delete($user->profile);
         }
-        $user->profile_pic = $request->file('profile_pic')->store('uploads', 'public');
+        $file = $request->file('profile');
+        $filename = time() . '_' . $file->getClientOriginalName();
+        $validated['profile'] = $file->storeAs('uploads', $filename, 'public');
     }
     $user->update($validated);
     return response()->json([
+        'success' => true,
         'message' => 'Profile updated successfully',
         'user' => new CreateUser($user)
     ]);
 }
-
 }
