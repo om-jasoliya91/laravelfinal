@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
@@ -10,24 +9,31 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use App\Jobs\SendWelcomeEmail;
+use Yajra\DataTables\Facades\DataTables;
+use Illuminate\Http\JsonResponse;
 
 class RegisterController extends Controller
 {
-    public function addAdmin(Request $request)
+   public function addAdmin(Request $request)
     {
         $request->validate([
             'name' => 'required|string|min:2',
             'email' => 'required|email|unique:admins',
             'password' => 'required|min:6',
         ]);
-        Admin::create([
+        $admin = Admin::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
         ]);
-        return response()->json(['message' => 'Registered successfully']);
-    }
+        SendWelcomeEmail::dispatch($admin);
 
+        return response()->json([
+            'message' => 'Registered successfully',
+            'admin'=>$admin,
+        ],201);
+    }
     public function login(Request $request)
     {
         $request->validate([
@@ -84,7 +90,9 @@ public function createUser(Request $request)
     ]);
 }
 
-    public function getUsers(){
+    public function getUsers():JsonResponse{
+    // $user=User::all();
+    // return  DataTables::of($user)->toJson();
     return response()->json([
         'success'=>'user fetched succesfully',
         'users'=>User::all(),
@@ -136,6 +144,7 @@ public function updateUser(Request $request,$id)
         $file = $request->file('profile');
         $filename = time() . '_' . $file->getClientOriginalName();
         $validated['profile'] = $file->storeAs('uploads', $filename, 'public');
+        $user->profile="uploads".$filename;
     }
     $user->update($validated);
     return response()->json([
